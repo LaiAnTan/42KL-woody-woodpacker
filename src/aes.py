@@ -121,8 +121,8 @@ def rotWord(word):
 def subWord(word):
 	return bytes([SBOX[byte] for byte in word])
 
-def xor(w1, w2):
-	return bytes(a ^ b for a, b in zip(w1, w2))
+def xor(x1, x2):
+	return bytes(a ^ b for a, b in zip(x1, x2))
 
 def keyExpansion(key, nK, nR):
 
@@ -197,7 +197,72 @@ def encryptAES(plainText: bytes, key: bytes, keySize=128):
 
 	return state
 
-key = b'thiskeyis16bytes'
-msg = b'thismsgis16bytes'
+def encryptAES_withRoundKeys(plainText: bytes, roundKeys, nR):
 
-print(encryptAES(msg, key))
+	# intiial round 0
+	state = addRoundKey(plainText, roundKeys[0])
+
+	# rounds 1 - 10
+	for r in range(1, nR + 1):
+		state = subBytes(state)
+		state = shiftRows(state)
+
+		if r < nR:
+			state = mixColumns(state)
+		
+		state = addRoundKey(state, roundKeys[r])
+
+	return state
+
+
+def toBlocks(plainText):
+
+	blocks = []
+
+	for i in range(0, len(plainText), 16):
+		blocks.append(plainText[i:i+16])
+
+	return blocks
+
+def AES_CTR(plainText, key, iv, keySize = 128):
+	"""
+	key must be 128 bits (16 bytes)
+	initialisation vector iv must be 96 bits ()
+	"""
+
+	if keySize not in [128, 192, 256]:
+		raise ValueError
+
+	match keySize:
+		case 128:
+			nK, nR = 4, 10
+		case 192:
+			nK, nR = 6, 12
+		case 256:
+			nK, nR = 8, 14
+
+	plainTextBlocks = toBlocks(plainText)
+	outBlocks = []
+
+	# concat 12 byte iv with 4 byte 1 to make 16 bytes initial counter block
+	j0 = iv + (1).to_bytes(4)
+
+	roundKeys = keyExpansion(key, nK, nR)
+
+	for i, block in enumerate(plainTextBlocks):
+		counter = (int.from_bytes(j0) + i).to_bytes(16)
+		eC = encryptAES_withRoundKeys(counter, roundKeys, nR)
+		outBlocks.append(xor(block, eC))
+
+	return b''.join(outBlocks)
+
+if __name__ == "__main__":
+
+	key = b'thiskeyis16bytes'
+	msg = b'Whats up guys this message is supposed to be encrypted'
+	iv = b'aaaaaaaaaaaa'
+
+	encrypted = AES_CTR(msg, key, iv)
+	decrypted = AES_CTR(encrypted, key, iv)
+	print(f"Encrypted: {encrypted}")
+	print(f"Decrypted: {decrypted}")
