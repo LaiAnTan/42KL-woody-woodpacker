@@ -48,13 +48,22 @@ int determine_exec_file_type(char *buffer, long buffer_size)
 	// check for ELF magic number
 	if (buffer[0] == 0x7F && buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'F')
 	{
+		// TODO: only handle little endian files
+		if (buffer[5] == 0x02)
+		{
+			error("io.determine_exec_file_type: unsupported endianess");
+			return -1;	
+		}
+
 		// check for 32 or 64 bit
 		if (buffer[4] == 1)
 			return FILE_TYPE_ELF_32;
 		return FILE_TYPE_ELF_64;
 	}
 
-	// TODO: check for macho magic number
+	// check for macho magic number
+	if (buffer[0] == 0xcf && buffer[1] == 0xfa && buffer[2] == 0xed && buffer[3] == 0xfe)
+		return FILE_TYPE_MACHO;
 
 	error("io.determine_exec_file_type: unsupported file");
 	return -1;
