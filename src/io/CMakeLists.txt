@@ -1,8 +1,5 @@
 add_library(io)
 
-add_compile_options(-fsanitize=address -g3)
-add_link_options(-fsanitize=address -g3)
-
 target_sources(io
 	PRIVATE
     	io.c

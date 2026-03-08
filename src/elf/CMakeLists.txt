@@ -2,6 +2,7 @@ add_library(elf)
 
 target_sources(elf
 	PRIVATE
+		execution.c
     	parsing.c
 
 	PUBLIC

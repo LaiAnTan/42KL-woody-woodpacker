@@ -48,7 +48,7 @@ int determine_exec_file_type(char *buffer, long buffer_size)
 	// check for ELF magic number
 	if (buffer[0] == 0x7F && buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'F')
 	{
-		// TODO: only handle little endian files
+		// only handle little endian files
 		if (buffer[5] == 0x02)
 		{
 			error("io.determine_exec_file_type: unsupported endianess");

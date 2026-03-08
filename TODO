@@ -1,0 +1,19 @@
+- determine file arch by parsing magic number
+
+- 64bit elf
+	- parse program headers
+	- map header sections
+
+- 32bit elf
+
+- macho
+
+top down approach, first simulate the stub, takes a program, runs some code, and executes inner program
+
+can run basic programs by reading instructions and mprotect the execution section
+
+need to do mmap for data sections
+
+handle dylib
+
+handle position independant

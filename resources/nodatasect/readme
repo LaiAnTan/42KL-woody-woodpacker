@@ -1,0 +1,2 @@
+nasm -f elf64 nodata.asm
+ld nodata.o -o nodata
