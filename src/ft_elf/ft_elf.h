@@ -34,7 +34,7 @@ typedef struct		s_elf_info
 	Elf64_Ehdr		*elf_header; // ELF header
 	Elf64_Phdr		*segments; // program headers of guest
 	Elf64_Shdr		*sections; // guest headers of guest
-	Elf64_Phdr		*pt_load; /* injected segment */ // program header of guest that describes a loadable, executable segment
+	Elf64_Phdr		*pt_load; /* injected segment */ // program header of guest that describes a loadable, executable segment +1
 	Elf64_Shdr		*text_section; // points to text section header
 }					t_elf_info;
 

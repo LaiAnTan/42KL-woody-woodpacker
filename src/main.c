@@ -45,7 +45,5 @@ int main(int argc, char const *argv[])
 	if (ret)
 		return ret;
 
-	
-
 	return 0;
 }

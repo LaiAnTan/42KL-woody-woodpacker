@@ -4,35 +4,33 @@
 #include "ft_elf.h"
 #include "logging.h"
 
-int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info elf_info)
+int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info *elf_info)
 {
 	// find .shstrtab SHT_STRTAB section to locate the string table
-	Elf64_Shdr *sections = elf_info.sections;
-	int num_sections = elf_info.elf_header->e_shnum;
+	Elf64_Shdr *sections = elf_info->sections;
+	int num_sections = elf_info->elf_header->e_shnum;
 	
 	for (size_t i = 0; i < num_sections; i++)
 	{
-		Elf64_Shdr curr_section = sections[i];
-		info("mid %p %p %p", &curr_section, curr_section, sections);
-		if (curr_section.sh_type == SHT_STRTAB)
+		Elf64_Shdr *curr_section = &sections[i];
+		if (curr_section->sh_type == SHT_STRTAB)
 		{
-			Elf32_Word sh_idx = curr_section.sh_name;
-			Elf32_Off sh_offset = curr_section.sh_offset;
-			Elf32_Off sh_size = curr_section.sh_size;
+			Elf32_Word sh_idx = curr_section->sh_name;
+			Elf32_Off sh_offset = curr_section->sh_offset;
+			Elf32_Off sh_size = curr_section->sh_size;
 			
-			unsigned char *sect_name = elf_info.guest_file.contents + sh_offset + sh_idx;
+			unsigned char *sect_name = elf_info->guest_file.contents + sh_offset + sh_idx;
 			// once section name string table is located, find text section
 			if (!strcmp((const char *) sect_name, ".shstrtab"))
 			{
 				for (size_t j = 0; j < num_sections; j++)	
 				{
-					Elf64_Shdr query_section = sections[j];
-					Elf32_Word query_sh_idx = query_section.sh_name;
-					unsigned char *query_sect_name = elf_info.guest_file.contents + sh_offset + query_sh_idx;
-					
+					Elf64_Shdr *query_section = &sections[j];
+					Elf32_Word query_sh_idx = query_section->sh_name;
+					unsigned char *query_sect_name = elf_info->guest_file.contents + sh_offset + query_sh_idx;
 					if (!strcmp((const char *) query_sect_name, ".text"))
 					{
-						*text_section_ptr = &query_section;
+						*text_section_ptr = query_section;
 						return 0;
 					}
 				}
@@ -44,6 +42,26 @@ int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info elf_info)
 	}
 
 	error("get_text_section_header: shstrtab section not found");
+	return 1;
+}
+
+int get_first_x_segment_hdr(Elf64_Phdr **first_x_seg_ptr, t_elf_info *elf_info)
+{
+	Elf64_Phdr *segments = elf_info->segments;
+	int ph_num = elf_info->elf_header->e_phnum;
+
+	// NOTE: do i need to check if there needs to be more program headers down the line?
+	for (size_t i = 0; i < ph_num - 1; i++)
+	{
+		// NOTE: do i need to check if next segment is a loadable one?
+		Elf64_Phdr *curr_segment = &segments[i];
+		if (curr_segment->p_type == PT_LOAD && curr_segment->p_flags & PF_X)
+		{
+			*first_x_seg_ptr = curr_segment;
+			return 0;
+		}
+	}
+	error("get_first_x_segment_hdr: no exploitable segment found");
 	return 1;
 }
 
@@ -87,11 +105,15 @@ int init_elf_info(t_elf_info *elf_info, t_file_info guest_file)
 	elf_info->segments = guest_file.contents + elf_info->elf_header->e_phoff;
 	elf_info->sections = guest_file.contents + elf_info->elf_header->e_shoff;
 
-	info("before %p", elf_info->text_section);
-	get_text_section_header(&elf_info->text_section, *elf_info);
-	info("after %x %x %x", elf_info->text_section, elf_info->guest_file.contents, elf_info->guest_file.contents + elf_info->guest_file.size);
+	int ret = get_text_section_header(&elf_info->text_section, elf_info);
+	if (ret)
+		return ret;
 
+	ret = get_first_x_segment_hdr(&elf_info->pt_load, elf_info);
+	if (ret)
+		return ret;
 
+	// TODO: find first loadable segment
 
 
 	return 0;
