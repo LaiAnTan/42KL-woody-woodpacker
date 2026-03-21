@@ -1,14 +1,15 @@
-add_compile_options(-fsanitize=address -g3)
+add_compile_options(-fsanitize=address -g3) # TODO: add warning flags here
 add_link_options(-fsanitize=address -g3)
 
 add_executable(woody)
 
 add_subdirectory(types)
 add_subdirectory(io)
-add_subdirectory(elf)
+add_subdirectory(ft_elf)
 add_subdirectory(aes)
 add_subdirectory(lzma)
 add_subdirectory(logging)
+add_subdirectory(shellcode)
 
 target_sources(woody
 	PRIVATE main.c
@@ -20,5 +21,6 @@ target_link_libraries(woody
 	lzma
 	io
 	types
-	elf
+	ft_elf
+	shellcode
 )

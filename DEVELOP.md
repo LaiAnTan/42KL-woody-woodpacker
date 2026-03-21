@@ -6,7 +6,7 @@ cmake -B build
 to compile
 
 ```
-cmake --build build --clean-first
+cmake --build build --clean-first # --verbose for debug
 ```
 
 to run

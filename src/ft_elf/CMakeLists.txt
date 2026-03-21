@@ -1,6 +1,6 @@
-add_library(elf)
+add_library(ft_elf)
 
-target_sources(elf
+target_sources(ft_elf
 	PRIVATE
     	parsing.c
 
@@ -9,11 +9,12 @@ target_sources(elf
 		BASE_DIRS
 		.
 		FILES
-		elf.h
+		ft_elf.h
 )
 
-target_link_libraries(elf
+target_link_libraries(ft_elf
   PRIVATE
     types
 	logging
+	io
 )

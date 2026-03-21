@@ -4,39 +4,46 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 
 #include "logging.h"
 #include "io.h"
 
-long read_file(const char *file_name, char *buffer, long max_size)
-{
-	int fd = open(file_name, O_RDONLY);
-	long read_buf_passed = 0;
-	int read_buf_size = 1024;
+int read_file(const char* file_name, t_file_info *file){
+	int fd;
+	int size;
+	void* addr;
 
-    if (fd == -1) {
-		char *errmsg = strerror(errno);
-		error("io.read_file: %s", errmsg);
-		return -1;
-    }
-
-	while (read_buf_passed < max_size) {
-		int read_bytes = read(fd, buffer + read_buf_passed, read_buf_size);
-		if (read_bytes == 0 || read_bytes == -1)
-			break;
-		read_buf_passed += read_bytes;
-	}
-
-	if (read_buf_passed >= max_size)
+	fd = open(file_name, O_RDONLY);
+	if (fd < 0)
 	{
-		error("io.read_file: max size reached");
-		return -67;
+		error("read_file: open failed with error %d", errno);
+		return (errno);
 	}
-
-	return read_buf_passed;
+	
+	size = lseek(fd, (size_t)0, SEEK_END); // magically seek to the end, returning file size
+	if (size < 0)
+	{
+		close(fd);
+		if (!errno)
+			errno = 1;
+		error("read_file: lseek failed with error %d", errno);
+		return (errno);
+	}
+	addr = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0); // NOTE: need to free this using munmap
+	if (addr == MAP_FAILED)
+	{
+		error("read_file: mmap failed with error %d", errno);
+		close(fd);
+		return (errno);
+	}
+	file->fd = fd;
+	file->size = size;
+	file->contents = addr;
+	return 0;
 }
 
-int determine_exec_file_type(char *buffer, long buffer_size)
+int determine_exec_file_type(unsigned char *buffer, long buffer_size)
 {
 	// auto return error if buffer is too small for magic number scanning
 	if (buffer_size < 10)
