@@ -12,8 +12,8 @@ typedef struct file_info
 } t_file_info;
 
 
-// long read_file(const char* file_name, char *buffer, long max_size);
 int read_file(const char* file_name, t_file_info *file);
+int free_file(t_file_info *file);
 int determine_exec_file_type(unsigned char *buffer, long buffer_size);
 
 #endif  //!__IO__H__

@@ -3,7 +3,6 @@ add_library(shellcode INTERFACE)
 set(SHELLCODE_ROOT "${CMAKE_BINARY_DIR}/src/shellcode")
 file(COPY "shellcode.s" DESTINATION ${SHELLCODE_ROOT})
 
-
 # compile shellcode
 execute_process(
     COMMAND sh -c "cd ${SHELLCODE_ROOT} && nasm shellcode.s -f elf64 -o shellcode.o"

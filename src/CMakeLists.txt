@@ -6,7 +6,7 @@ add_executable(woody)
 add_subdirectory(types)
 add_subdirectory(io)
 add_subdirectory(ft_elf)
-add_subdirectory(aes)
+add_subdirectory(enc)
 add_subdirectory(lzma)
 add_subdirectory(logging)
 add_subdirectory(shellcode)
@@ -23,4 +23,5 @@ target_link_libraries(woody
 	types
 	ft_elf
 	shellcode
+	enc
 )

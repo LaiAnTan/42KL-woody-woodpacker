@@ -1,18 +1,19 @@
-        global _start
+global _start
 
-        section .text
+section .text
 
-_start: mov rdi, 1      ; stdout fd
-        mov rsi, msg
-        mov rdx, 9      ; 8 chars + newline
-        mov rax, 1      ; write syscall
+_start:
+        mov rax, 0x0a65726568742069 ; "hi there\n" (little endian)
+        push rax
+
+        mov rdi, 1          ; stdout
+        mov rsi, rsp        ; pointer to string
+        mov rdx, 9          ; length
+        mov rax, 1          ; write
         syscall
 
-        xor rdi, rdi    ; return code 0
-        mov rax, 60     ; exit syscall
+        add rsp, 8          ; clean stack
+
+        xor rdi, rdi        ; exit code 0
+        mov rax, 60         ; exit
         syscall
-
-
-section .data
-
-msg:    db "hi there", 10

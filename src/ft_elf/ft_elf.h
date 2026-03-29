@@ -2,8 +2,10 @@
 #define __FT_ELF__H__
 
 
+#include <stddef.h>
 #include "types.h"
 #include "io.h"
+#include "enc.h"
 
 #ifdef __APPLE__
 #include <libelf.h>
@@ -40,5 +42,6 @@ typedef struct		s_elf_info
 
 
 int init_elf_info(t_elf_info *elf_info, t_file_info guest_file);
+int write_binary(unsigned char **stub_buffer, t_key *key, t_file_info *guest_file, t_elf_info *elf_info);
 
 #endif  //!__FT_ELF__H__

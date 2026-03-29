@@ -113,8 +113,6 @@ int init_elf_info(t_elf_info *elf_info, t_file_info guest_file)
 	if (ret)
 		return ret;
 
-	// TODO: find first loadable segment
-
 
 	return 0;
 }

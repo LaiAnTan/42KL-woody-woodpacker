@@ -8,17 +8,38 @@
 #include "LzmaDec.h"
 #include "Alloc.h"
 #include "shellcode.h"
+#include "enc.h"
+#include "types.h"
 
 #define MAX_FILE_SIZE (size_t) 1024 * 1024 * 1024 * 5
 
 int validate_args(int argc, char const *argv[])
 {
-	// TODO: add more inputs for parameterized key bonus
-	if (argc != 2)
+	if (argc > 3 || argc < 2)
 	{
-		error("usage: woody <file_name> <aes-key-or-whatever>\n");
+		error("usage: woody <file_name> <key_size>\n");
 		return 1;
 	}
+	return 0;
+}
+
+int create_stub(t_key *key, t_file_info *guest_file, t_elf_info *elf_info)
+{
+	// check stub requirements (?)
+
+	// create stub buffer
+	long size_stub = guest_file->size + (((SHELLCODE_SIZE + key->size) / PAGE_SIZE) + 1) * PAGE_SIZE;
+	unsigned char *stub_buffer;
+	if (!(stub_buffer = malloc(size_stub)))
+	{
+		error("create_stub: failed to allocate stub buffer");
+		return (1);
+	}
+	
+	info("stub size - 0x%x", size_stub);
+	// write binary to stub buffer
+	int ret = write_binary(&stub_buffer, key, guest_file, elf_info);
+
 	return 0;
 }
 
@@ -43,7 +64,35 @@ int main(int argc, char const *argv[])
 	t_elf_info elf_info;
 	ret = init_elf_info(&elf_info, guest_file);
 	if (ret)
+	{
+		free_file(&guest_file);
 		return ret;
+	}
 
+	int key_size = (argc < 3) ? KEY_SIZE : atoi(argv[2]);
+	if (key_size < 3)
+	{
+		error("key size must be more than 3");
+		free_file(&guest_file);
+		return 1;
+	}
+	t_key *key = generate_key(key_size);
+	if (!key)
+	{
+		free_file(&guest_file);
+		free_key(key);
+		return 1;
+	}
+
+	ret = create_stub(key, &guest_file, &elf_info);
+	if (ret)
+	{
+		free_file(&guest_file);
+		free_key(key);
+		return ret;
+	}
+	
+	free_file(&guest_file);
+	free_key(key);
 	return 0;
 }

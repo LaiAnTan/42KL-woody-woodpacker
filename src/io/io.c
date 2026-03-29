@@ -43,6 +43,26 @@ int read_file(const char* file_name, t_file_info *file){
 	return 0;
 }
 
+// TODO: make free file info
+int free_file(t_file_info *file)
+{
+	int ret = munmap(file->contents, file->size);
+	if (ret)
+	{
+		error("free_file: munmap error");
+		return ret;
+	}
+	
+	ret = close(file->fd);
+	if (ret)
+	{
+		error("free_file: close error");
+		return ret;
+	}
+	
+	return 0;
+}
+
 int determine_exec_file_type(unsigned char *buffer, long buffer_size)
 {
 	// auto return error if buffer is too small for magic number scanning
