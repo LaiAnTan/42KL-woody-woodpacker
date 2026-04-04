@@ -1,9 +1,40 @@
 #include <string.h>
+#include <stdio.h>
 #include "ft_elf.h"
 #include "enc.h"
 #include "logging.h"
 #include "types.h"
 #include "shellcode.h"
+
+void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned char **stub_buffer, Elf64_Addr new_entry, t_key *key)
+{
+	// write shellcode and key
+	// for (size_t i = 0; i < SHELLCODE_SIZE; i++)
+	// {
+	// 	printf("%x, ", SHELLCODE_BYTES[i]);
+	// }
+	// printf("\n");
+	
+	memcpy(*stub_buffer, SHELLCODE_BYTES, SHELLCODE_SIZE);
+	*stub_buffer += SHELLCODE_SIZE;
+	memcpy(*stub_buffer, key->buffer, key->size);
+	*stub_buffer += key->size;
+
+	// fill page aligned padding
+	Elf64_Phdr *next_segment = elf_info->pt_load + 1;
+	unsigned int padding_len = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	unsigned int padding_len_page_aligned =	PAGE_SIZE - (padding_len % PAGE_SIZE);
+	int diff = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	int diff_2 = PAGE_SIZE - (diff % PAGE_SIZE);
+	// info("padding_len_page_aligned %x, %x, %x", padding_len_page_aligned, padding_len_page_aligned, diff_2);
+	// memset(*stub_buffer, 0, padding_len_page_aligned);
+	// *stub_buffer += padding_len_page_aligned;
+	memset(*stub_buffer, 0, diff_2);
+	*stub_buffer += diff_2;
+	start = elf_info->guest_file.contents + next_segment->p_offset;
+
+	return start;
+}
 
 void *write_until_entry(t_elf_info *elf_info, void *start, unsigned char **stub_buffer, Elf64_Addr new_entry)
 {
@@ -47,13 +78,39 @@ void *include_shellcode_sz_in_segment(void *start, unsigned char **stub_buffer, 
 	return start;
 }
 
+void *update_section_offsets(t_elf_info *elf_info, void *start, unsigned char **stub_buffer)
+{
+	Elf64_Off		new_shoff;
+
+	// copy the rest of the things here
+
+
+	for (int i = 0; i < elf_info->elf_header->e_shnum; i++)
+	{
+		if ((unsigned long)elf_info->sections[i].sh_offset > (unsigned long)elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz)
+		{
+			new_shoff = elf_info->sections[i].sh_offset + PAGE_SIZE;
+			// info("stub buffer curr %p", *stub_buffer);
+			// info("updating shoff at offset %x", (unsigned long)&elf_info->sections[i].sh_offset - (unsigned long) elf_info->guest_file.contents);
+			memcpy(*stub_buffer, start, ((unsigned long)&elf_info->sections[i].sh_offset - (unsigned long)start));
+			*stub_buffer += (unsigned long)&elf_info->sections[i].sh_offset - (unsigned long)start;
+			memcpy(*stub_buffer, &new_shoff, sizeof(new_shoff));
+			*stub_buffer += sizeof(new_shoff);
+			start = (void *)&elf_info->sections[i].sh_offset + sizeof(elf_info->sections[i].sh_offset);
+		}
+	}
+	return start;
+}
+
 void *update_segment_offsets(t_elf_info *elf_info, void *start, unsigned char **stub_buffer, t_key *key)
 {
 	Elf64_Off		new_shoff;
 
 	// create new section header offset, which is the original offset + PAGE_SIZE (padding)
 	// and copy until shoff position and write new shoff
+	info("old shoff %x, total size %x, max off %x", elf_info->elf_header->e_shoff, elf_info->elf_header->e_shentsize * elf_info->elf_header->e_shnum, elf_info->elf_header->e_shoff + elf_info->elf_header->e_shentsize * elf_info->elf_header->e_shnum);
 	new_shoff = elf_info->elf_header->e_shoff + PAGE_SIZE;
+	info("new shoff %x", new_shoff);
 	unsigned long start_to_eshoff_sz = (unsigned long) &(elf_info->elf_header->e_shoff) - (unsigned long) start;
 	memcpy(*stub_buffer, start,  start_to_eshoff_sz);
 	*stub_buffer += start_to_eshoff_sz;
@@ -90,6 +147,12 @@ int write_enc_text_section(t_elf_info *elf_info, void *start, unsigned char **st
 	char *encrypted_text = xor_encrypt(elf_info->guest_file.contents + txt_sect_offs, txt_sect_size, key);
 	if (!encrypted_text)
 		return (1);	
+
+	// for (size_t i = 0; i < txt_sect_size; i++)
+	// {
+	// 	printf("%x, ", encrypted_text[i]);
+	// }
+	// printf("\n");
 	
 	memcpy(*stub_buffer, start, start_to_txt_scn_sz);
 	*stub_buffer += start_to_txt_scn_sz;
@@ -109,10 +172,14 @@ int write_binary(unsigned char **stub_buffer, t_key *key, t_file_info *guest_fil
 
 	// write the elf header until new entry
 	start = write_until_entry(elf_info, start, stub_buffer, new_entry);
+	info("entry offset %x", start - guest_file->contents);
+	info("new entry %x", new_entry);
+
 
 	// add the segment padding for shellcode segment
 	// and adjust offset for the sections after the padded section
 	start = update_segment_offsets(elf_info, start, stub_buffer, key);
+	info("pheader end offset %x", start - guest_file->contents);
 
 	// 'start' should be at the end of the program header now
 	// copy until the text section of the program and write the encrypted text section
@@ -123,16 +190,31 @@ int write_binary(unsigned char **stub_buffer, t_key *key, t_file_info *guest_fil
 	// update start because we didnt update jn...
 	// update start to end of text section
 	start += (unsigned long)(elf_info->guest_file.contents + elf_info->text_section->sh_offset) - (unsigned long)start + (unsigned long)elf_info->text_section->sh_size;
+	info("stub buffer curr %p", *stub_buffer);
+	info("end enc offset %x", start - guest_file->contents);
 
 	// copy everything else thats left for the first segment
 	// which should be the segment which includes the original text section
 	uint64_t start_to_end_seg_sz = (unsigned long)(elf_info->guest_file.contents + elf_info->pt_load->p_offset) - (unsigned long)start + (unsigned long)elf_info->pt_load->p_memsz;
 	memcpy(*stub_buffer, start, start_to_end_seg_sz);
 	start += start_to_end_seg_sz;
-	*stub_buffer += start_to_end_seg_sz;	
+	*stub_buffer += start_to_end_seg_sz;
+	info("segment remaininig bytes %x", start_to_end_seg_sz);
+	info("stub buffer curr %p", *stub_buffer);
+	info("end 1st segment offset %x", start - guest_file->contents);
 
-	
 
+	// write shellcode and key at current position (segment)	
+	// and fill padding until end of current segment
+	start = write_shellcode_and_padding(elf_info, start, stub_buffer, new_entry, key);
+	info("stub buffer curr %p", *stub_buffer);
+	info("end shellcode padding offset %x", start - guest_file->contents);
+
+	// adjust the offset for the section headers
+	start = update_section_offsets(elf_info, start, stub_buffer);
+
+	// write the rest of the elf
+	memcpy(*stub_buffer, start, end - start);
 
 	return 0;
 }

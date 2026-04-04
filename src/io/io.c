@@ -43,7 +43,14 @@ int read_file(const char* file_name, t_file_info *file){
 	return 0;
 }
 
-// TODO: make free file info
+int write_file(unsigned char *stub_buffer, long size_stub)
+{
+	int fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	int ret = write(fd, stub_buffer, size_stub);
+	close(fd);
+	return 0;
+}
+
 int free_file(t_file_info *file)
 {
 	int ret = munmap(file->contents, file->size);
@@ -75,7 +82,6 @@ int determine_exec_file_type(unsigned char *buffer, long buffer_size)
 	// check for ELF magic number
 	if (buffer[0] == 0x7F && buffer[1] == 'E' && buffer[2] == 'L' && buffer[3] == 'F')
 	{
-		// TODO: only handle little endian files
 		if (buffer[5] == 0x02)
 		{
 			error("io.determine_exec_file_type: unsupported endianess");

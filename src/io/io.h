@@ -13,6 +13,7 @@ typedef struct file_info
 
 
 int read_file(const char* file_name, t_file_info *file);
+int write_file(unsigned char *stub_buffer, long size_stub);
 int free_file(t_file_info *file);
 int determine_exec_file_type(unsigned char *buffer, long buffer_size);
 

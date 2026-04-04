@@ -35,11 +35,20 @@ int create_stub(t_key *key, t_file_info *guest_file, t_elf_info *elf_info)
 		error("create_stub: failed to allocate stub buffer");
 		return (1);
 	}
+	unsigned char *stub_buffer_snapshot = stub_buffer;
 	
-	info("stub size - 0x%x", size_stub);
 	// write binary to stub buffer
+	info("stub buffer init %p", stub_buffer_snapshot);
 	int ret = write_binary(&stub_buffer, key, guest_file, elf_info);
+	if (ret)
+		return ret;
 
+	// write stub buffer to file
+	ret = write_file(stub_buffer_snapshot, size_stub);
+	if (ret)
+		return ret;
+
+	free(stub_buffer_snapshot);
 	return 0;
 }
 

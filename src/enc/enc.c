@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "enc.h"
 
+// TODO: make this unsigned char?
 char		*xor_encrypt(char *input, size_t input_len, t_key *key)
 {
 	size_t		i;
