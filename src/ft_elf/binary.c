@@ -21,16 +21,42 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 	*stub_buffer += key->size;
 
 	// fill page aligned padding
+
+	// Elf64_Phdr *next_segment = elf_info->pt_load + 1;
+	// unsigned int padding_len = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	// unsigned int padding_len_page_aligned =	PAGE_SIZE - (padding_len % PAGE_SIZE);
+	
+	// int diff = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	// int diff_2 = PAGE_SIZE - (diff % PAGE_SIZE);
+	
+	// // memset(*stub_buffer, 0, padding_len_page_aligned);
+	// // *stub_buffer += padding_len_page_aligned;
+	// memset(*stub_buffer, 0, diff_2);
+	// *stub_buffer += diff_2;
+	// info("how many EMPTY bytes from first segment offset to next segment offset %d", next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	// info("how many EMPTY bytes from first segment offset to next segment offset %d", next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
+	
+	// TODO: handle this difference by filling actual correct padding, also, make sure nexy segment has offset value in validation (?)
+	// offset difference should be the original difference + PAGE_SIZE
+	// in other words, new next segment offset will be old next_segment->p_offset + PAGE_SIZE * already made sure
+	// everything after curr_filled to new next segment offset will be filled with 0
+
 	Elf64_Phdr *next_segment = elf_info->pt_load + 1;
-	unsigned int padding_len = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
-	unsigned int padding_len_page_aligned =	PAGE_SIZE - (padding_len % PAGE_SIZE);
-	int diff = (SHELLCODE_SIZE + key->size) - (next_segment->p_offset - (elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz));
-	int diff_2 = PAGE_SIZE - (diff % PAGE_SIZE);
-	// info("padding_len_page_aligned %x, %x, %x", padding_len_page_aligned, padding_len_page_aligned, diff_2);
-	// memset(*stub_buffer, 0, padding_len_page_aligned);
-	// *stub_buffer += padding_len_page_aligned;
-	memset(*stub_buffer, 0, diff_2);
-	*stub_buffer += diff_2;
+	unsigned int next_segment_offset = next_segment->p_offset;
+	unsigned int curr_offset = elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz;
+	unsigned int curr_filled = curr_offset + SHELLCODE_SIZE + key->size;
+	unsigned int new_next_segment_offset = next_segment_offset + PAGE_SIZE;
+	unsigned int size_to_next_offset = new_next_segment_offset - curr_filled;
+	info("next_segment_offset %d", next_segment_offset);
+	info("curr_offset %d", curr_offset);
+	info("curr_filled %d", curr_filled);
+	info("new_next_segment_offset %d", new_next_segment_offset);
+	info("size_to_next_offset %d", size_to_next_offset);
+	info("PAGE_SIZE %d", PAGE_SIZE);
+	memset(*stub_buffer, 0, size_to_next_offset);	
+	*stub_buffer += size_to_next_offset;
+
+
 	start = elf_info->guest_file.contents + next_segment->p_offset;
 
 	return start;
