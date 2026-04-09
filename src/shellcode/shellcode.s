@@ -3,12 +3,12 @@ global _start
 section .text
 
 _start:
-        mov rax, 0x0a65726568742069 ; "hi there\n" (little endian)
+        mov rax, 0x0a68757262 ; "bruh\n" (little endian)
         push rax
 
         mov rdi, 1          ; stdout
         mov rsi, rsp        ; pointer to string
-        mov rdx, 9          ; length
+        mov rdx, 5          ; length
         mov rax, 1          ; write
         syscall
 

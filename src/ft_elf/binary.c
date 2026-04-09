@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "ft_elf.h"
 #include "enc.h"
 #include "logging.h"
@@ -186,6 +187,7 @@ int write_enc_text_section(t_elf_info *elf_info, void *start, unsigned char **st
 	memcpy(*stub_buffer, encrypted_text, txt_sect_size);	
 	*stub_buffer += txt_sect_size;
 
+	free(encrypted_text);
 	return 0;
 }
 
