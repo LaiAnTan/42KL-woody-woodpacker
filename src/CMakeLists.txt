@@ -1,5 +1,5 @@
-add_compile_options(-fsanitize=address -g3) # TODO: add warning flags here
-add_link_options(-fsanitize=address -g3)
+add_compile_options(-fsanitize=address -Wall -Wextra -g3) # TODO: add warning flags here
+add_link_options(-fsanitize=address -Wall -Wextra -g3)
 
 add_executable(woody_woodpacker)
 

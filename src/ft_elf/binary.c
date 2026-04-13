@@ -16,10 +16,35 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 	// }
 	// printf("\n");
 	
-	memcpy(*stub_buffer, SHELLCODE_BYTES, SHELLCODE_SIZE);
-	*stub_buffer += SHELLCODE_SIZE;
+	// write all shellcode contents until parameters
+	int n_params = 7;
+	int call_ins_size = 5;
+	size_t param_and_key_call_size = (sizeof(uint64_t) * n_params) + call_ins_size;
+	size_t len_till_params = SHELLCODE_SIZE - param_and_key_call_size;
+	memcpy(*stub_buffer, SHELLCODE_BYTES, len_till_params);
+	*stub_buffer += len_till_params;
+
+	// copy all params
+	memcpy(*stub_buffer + sizeof(uint64_t) * 0, &elf_info->pt_load->p_vaddr, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 1, &elf_info->pt_load->p_offset, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 2, &elf_info->text_section->sh_offset, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 3, &elf_info->text_section->sh_size, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 4, &new_entry, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 5, &elf_info->elf_header->e_entry, sizeof(uint64_t));
+	memcpy(*stub_buffer + sizeof(uint64_t) * 6, &key->size, sizeof(uint64_t));
+	*stub_buffer += sizeof(uint64_t) * n_params;
+
+	// copy call instuction
+	memcpy(*stub_buffer, SHELLCODE_BYTES + (SHELLCODE_SIZE - call_ins_size), call_ins_size);
+	*stub_buffer += call_ins_size;
+
+	// memcpy(*stub_buffer, SHELLCODE_BYTES, SHELLCODE_SIZE);
+	// *stub_buffer += SHELLCODE_SIZE;
+
+	// copy key
 	memcpy(*stub_buffer, key->buffer, key->size);
 	*stub_buffer += key->size;
+
 
 	// fill page aligned padding
 

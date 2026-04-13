@@ -9,7 +9,7 @@
 
 _start: mov rdi, 1      ; stdout fd
         lea rsi, [rel msg]
-        ; mov rsi, msg  ; this will not work without relocation in loading...
+        ; mov rsi, msg  ; this will not work without relocation in loading... (loader but do work to patch this...)
         mov rdx, 9      ; 8 chars + newline
         mov rax, 1      ; write syscall
         syscall
