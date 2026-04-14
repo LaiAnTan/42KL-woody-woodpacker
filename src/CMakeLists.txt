@@ -7,7 +7,6 @@ add_subdirectory(types)
 add_subdirectory(io)
 add_subdirectory(ft_elf)
 add_subdirectory(enc)
-add_subdirectory(lzma)
 add_subdirectory(logging)
 add_subdirectory(shellcode)
 
@@ -18,7 +17,6 @@ target_sources(woody_woodpacker
 target_link_libraries(woody_woodpacker
   PRIVATE
     logging
-	lzma
 	io
 	types
 	ft_elf

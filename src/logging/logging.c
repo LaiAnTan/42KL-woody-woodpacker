@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <time.h>
+#include "logging.h"
 
 void info(const char* format, ...) {
+    if (LOGLEVEL > INFO_LOGLV)
+        return;
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
 
@@ -21,6 +24,8 @@ void info(const char* format, ...) {
 }
 
 void warn(const char* format, ...) {
+    if (LOGLEVEL > WARN_LOGLV)
+        return;
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
 
@@ -40,6 +45,8 @@ void warn(const char* format, ...) {
 
 
 void error(const char* format, ...) {
+    if (LOGLEVEL > ERR_LOGLV)
+        return;
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
 
@@ -59,6 +66,8 @@ void error(const char* format, ...) {
 
 
 void debug(const char* format, ...) {
+    if (LOGLEVEL > DEBUG_LOGLV)
+        return;
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
 

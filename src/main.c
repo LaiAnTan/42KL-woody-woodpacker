@@ -4,9 +4,6 @@
 #include "logging.h"
 #include "io.h"
 #include "ft_elf.h"
-#include "LzmaEnc.h"
-#include "LzmaDec.h"
-#include "Alloc.h"
 #include "shellcode.h"
 #include "enc.h"
 #include "types.h"
@@ -15,6 +12,7 @@
 
 int validate_args(int argc, char const *argv[])
 {
+	(void) argv;
 	if (argc > 3 || argc < 2)
 	{
 		error("usage: woody <file_name> <key_size>\n");
@@ -38,7 +36,7 @@ int create_stub(t_key *key, t_file_info *guest_file, t_elf_info *elf_info)
 	unsigned char *stub_buffer_snapshot = stub_buffer;
 	
 	// write binary to stub buffer
-	info("stub buffer init %p", stub_buffer_snapshot);
+	debug("stub buffer init %p", stub_buffer_snapshot);
 	int ret = write_binary(&stub_buffer, key, guest_file, elf_info);
 	if (ret)
 		return ret;
@@ -86,6 +84,7 @@ int main(int argc, char const *argv[])
 		return 1;
 	}
 	t_key *key = generate_key(key_size);
+	info("Key generated with size %d", key->size);
 	if (!key)
 	{
 		free_file(&guest_file);
