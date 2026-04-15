@@ -54,9 +54,8 @@ key_ret:
         ; 0x401075
         ; 0x5555555551c5
         mov rax, rdi ; load mprotect region start from jn?
-        sub rax, [rel p_offset] ; wtf?
-        add rax, [rel text_offset] ; wtf?
-        ; TODO: two lines above are weird indirections, can I just load old_entry? or just load p_offset? or just load text_offset?
+        sub rax, [rel p_offset]
+        add rax, [rel text_offset] ; since the segment may not be the start of the section, relocate to section start
         mov rcx, 0 ; text section iterator
         mov rdx, 0 ; key iterator
         
@@ -72,7 +71,6 @@ _decrypt:
 _decrypt_routine:
         ; 0x4010a7
         ; 0x5555555551f7
-        ; TODO: remove b suffix still works?
         mov r8b, byte[rsi + rdx] ; current key byte in r8
         xor byte[rax, rcx], r8b ; xor cipher byte and key byte
         inc rcx
@@ -83,8 +81,8 @@ _end_decrypt:
         ; 0x4010b7
         ; 0x555555555207
         mov rax, rdi ; load old entry
-        add rax, [rel old_entry] ; wtf?
-        sub rax, [rel v_addr] ; wtf?
+        add rax, [rel old_entry]
+        sub rax, [rel v_addr] ; since the segment may not be the start of the section, relocate to section start
         ; restore rdx
         pop rdx
 
