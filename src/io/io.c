@@ -47,8 +47,11 @@ int write_file(unsigned char *stub_buffer, long size_stub)
 {
 	int fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	int ret = write(fd, stub_buffer, size_stub);
-	close(fd);
-	return 0;
+	if (ret)
+		return ret;
+	
+	ret = close(fd);
+	return ret;
 }
 
 int free_file(t_file_info *file)

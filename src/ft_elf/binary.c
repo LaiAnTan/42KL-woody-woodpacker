@@ -27,14 +27,15 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 	*stub_buffer += len_till_params;
 
 	// collect all params
+	// unsigned long long
 	uint64_t *params[] = {
-		&elf_info->pt_load->p_vaddr,
-		&elf_info->pt_load->p_offset,
-		&elf_info->text_section->sh_offset,
-		&elf_info->text_section->sh_size,
-		&new_entry,
-		&elf_info->elf_header->e_entry,
-		&key->size
+		(uint64_t *)&elf_info->pt_load->p_vaddr,
+		(uint64_t *)&elf_info->pt_load->p_offset,
+		(uint64_t *)&elf_info->text_section->sh_offset,
+		(uint64_t *)&elf_info->text_section->sh_size,
+		(uint64_t *)&new_entry,
+		(uint64_t *)&elf_info->elf_header->e_entry,
+		(uint64_t *)&key->size
 	};
 
 	// copy in a loop
@@ -54,7 +55,8 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 
 
 	// fill page aligned padding
-	// TODO: handle this difference by filling actual correct padding, also, make sure nexy segment has offset value in validation (?)
+	// already validated that nexy segment has an offset we can use,
+	// handle this difference by filling actual correct padding
 	// offset difference should be the original difference + PAGE_SIZE
 	// in other words, new next segment offset will be old next_segment->p_offset + PAGE_SIZE * already made sure
 	// everything after curr_filled to new next segment offset will be filled with 0

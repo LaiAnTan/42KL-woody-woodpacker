@@ -10,20 +10,21 @@ int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info *elf_info)
 	Elf64_Shdr *sections = elf_info->sections;
 	int num_sections = elf_info->elf_header->e_shnum;
 	
-	for (size_t i = 0; i < num_sections; i++)
+	for (int i = 0; i < num_sections; i++)
 	{
 		Elf64_Shdr *curr_section = &sections[i];
 		if (curr_section->sh_type == SHT_STRTAB)
 		{
 			Elf32_Word sh_idx = curr_section->sh_name;
 			Elf32_Off sh_offset = curr_section->sh_offset;
-			Elf32_Off sh_size = curr_section->sh_size;
+			
+			// Elf32_Off sh_size = curr_section->sh_size;
 			
 			unsigned char *sect_name = elf_info->guest_file.contents + sh_offset + sh_idx;
 			// once section name string table is located, find text section
 			if (!strcmp((const char *) sect_name, ".shstrtab"))
 			{
-				for (size_t j = 0; j < num_sections; j++)	
+				for (int j = 0; j < num_sections; j++)	
 				{
 					Elf64_Shdr *query_section = &sections[j];
 					Elf32_Word query_sh_idx = query_section->sh_name;
@@ -50,12 +51,14 @@ int get_first_x_segment_hdr(Elf64_Phdr **first_x_seg_ptr, t_elf_info *elf_info)
 	Elf64_Phdr *segments = elf_info->segments;
 	int ph_num = elf_info->elf_header->e_phnum;
 
-	// NOTE: do i need to check if there needs to be more program headers down the line?
-	for (size_t i = 0; i < ph_num - 1; i++)
+	for (int i = 0; i < ph_num - 1; i++)
 	{
-		// NOTE: do i need to check if next segment is a loadable one?
+		// check if next segment is a loadable one, because if its not, the offset which
+		// we use to inject shellcode is irrelevant
 		Elf64_Phdr *curr_segment = &segments[i];
-		if (curr_segment->p_type == PT_LOAD && curr_segment->p_flags & PF_X)
+		Elf64_Phdr *next_segment = &segments[i + 1];
+
+		if (curr_segment->p_type == PT_LOAD && curr_segment->p_flags & PF_X && next_segment->p_type == PT_LOAD)
 		{
 			*first_x_seg_ptr = curr_segment;
 			return 0;
