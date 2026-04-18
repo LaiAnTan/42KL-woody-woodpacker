@@ -1,4 +1,3 @@
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "ft_elf.h"
@@ -6,6 +5,7 @@
 #include "logging.h"
 #include "types.h"
 #include "shellcode.h"
+#include "libft.h"
 
 void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned char **stub_buffer, Elf64_Addr new_entry, t_key *key)
 {
@@ -23,7 +23,7 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 	size_t param_and_key_call_size = (sizeof(uint64_t) * n_params) + call_ins_size;
 	size_t len_till_params = SHELLCODE_SIZE - param_and_key_call_size;
 
-	memcpy(*stub_buffer, SHELLCODE_BYTES, len_till_params);
+	ft_memcpy(*stub_buffer, SHELLCODE_BYTES, len_till_params);
 	*stub_buffer += len_till_params;
 
 	// collect all params
@@ -40,17 +40,17 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 
 	// copy in a loop
 	for (int i = 0; i < n_params; i++) {
-		memcpy(*stub_buffer + sizeof(uint64_t) * i, params[i], sizeof(uint64_t));
+		ft_memcpy(*stub_buffer + sizeof(uint64_t) * i, params[i], sizeof(uint64_t));
 	}
 
 	*stub_buffer += sizeof(uint64_t) * n_params;
 
 	// copy call instuction
-	memcpy(*stub_buffer, SHELLCODE_BYTES + (SHELLCODE_SIZE - call_ins_size), call_ins_size);
+	ft_memcpy(*stub_buffer, SHELLCODE_BYTES + (SHELLCODE_SIZE - call_ins_size), call_ins_size);
 	*stub_buffer += call_ins_size;
 
 	// copy key
-	memcpy(*stub_buffer, key->buffer, key->size);
+	ft_memcpy(*stub_buffer, key->buffer, key->size);
 	*stub_buffer += key->size;
 
 
@@ -73,7 +73,7 @@ void *write_shellcode_and_padding(t_elf_info *elf_info, void *start, unsigned ch
 	debug("new_next_segment_offset %d", new_next_segment_offset);
 	debug("size_to_next_offset %d", size_to_next_offset);
 	debug("PAGE_SIZE %d", PAGE_SIZE);
-	memset(*stub_buffer, 0, size_to_next_offset);	
+	ft_memset(*stub_buffer, 0, size_to_next_offset);	
 	*stub_buffer += size_to_next_offset;
 
 
@@ -86,11 +86,11 @@ void *write_until_entry(t_elf_info *elf_info, void *start, unsigned char **stub_
 {
 	// fill up everything in stub buffer from the old elf with a size of n bytes UNTIL the new entry address should be
 	unsigned long start_to_entry_sz = (unsigned long) &(elf_info->elf_header->e_entry) - (unsigned long) start;
-	memcpy(*stub_buffer, start,  start_to_entry_sz);
+	ft_memcpy(*stub_buffer, start,  start_to_entry_sz);
 	*stub_buffer += start_to_entry_sz;
 
 	// replace new_entry with the new entry point we just malloced
-	memcpy(*stub_buffer, &new_entry, sizeof(new_entry));
+	ft_memcpy(*stub_buffer, &new_entry, sizeof(new_entry));
 	*stub_buffer += sizeof(new_entry);
 
 	// move start pointer to point to space after new_entry is defined
@@ -102,7 +102,7 @@ void *write_until_entry(t_elf_info *elf_info, void *start, unsigned char **stub_
 void *include_shellcode_sz_in_segment(void *start, unsigned char **stub_buffer, Elf64_Phdr *segment, t_key *key)
 {
 	// copy elements until the current segments file_sz
-	memcpy(*stub_buffer, start, (unsigned long)&segment->p_filesz - (unsigned long)start);
+	ft_memcpy(*stub_buffer, start, (unsigned long)&segment->p_filesz - (unsigned long)start);
 	*stub_buffer += (unsigned long)&segment->p_filesz - (unsigned long)start;
 	start = &segment->p_filesz;
 
@@ -113,11 +113,11 @@ void *include_shellcode_sz_in_segment(void *start, unsigned char **stub_buffer, 
 	// copy filesz and mem pz to stub
 	// NOTE: does not override guest filesz and memsz here... we need them
 	// for shellcode injection later
-	memcpy(*stub_buffer, &new_p_filesz, sizeof(segment->p_filesz));
+	ft_memcpy(*stub_buffer, &new_p_filesz, sizeof(segment->p_filesz));
 	*stub_buffer += sizeof(segment->p_filesz);
 	start += sizeof(segment->p_filesz);
 
-	memcpy(*stub_buffer, &new_p_memsz, sizeof(segment->p_memsz));
+	ft_memcpy(*stub_buffer, &new_p_memsz, sizeof(segment->p_memsz));
 	*stub_buffer += sizeof(segment->p_memsz);
 	start += sizeof(segment->p_memsz);
 
@@ -138,9 +138,9 @@ void *update_section_offsets(t_elf_info *elf_info, void *start, unsigned char **
 			new_shoff = elf_info->sections[i].sh_offset + PAGE_SIZE;
 			// debug("stub buffer curr %p", *stub_buffer);
 			// debug("updating shoff at offset %x", (unsigned long)&elf_info->sections[i].sh_offset - (unsigned long) elf_info->guest_file.contents);
-			memcpy(*stub_buffer, start, ((unsigned long)&elf_info->sections[i].sh_offset - (unsigned long)start));
+			ft_memcpy(*stub_buffer, start, ((unsigned long)&elf_info->sections[i].sh_offset - (unsigned long)start));
 			*stub_buffer += (unsigned long)&elf_info->sections[i].sh_offset - (unsigned long)start;
-			memcpy(*stub_buffer, &new_shoff, sizeof(new_shoff));
+			ft_memcpy(*stub_buffer, &new_shoff, sizeof(new_shoff));
 			*stub_buffer += sizeof(new_shoff);
 			start = (void *)&elf_info->sections[i].sh_offset + sizeof(elf_info->sections[i].sh_offset);
 		}
@@ -158,9 +158,9 @@ void *update_segment_offsets(t_elf_info *elf_info, void *start, unsigned char **
 	new_shoff = elf_info->elf_header->e_shoff + PAGE_SIZE;
 	debug("new shoff %x", new_shoff);
 	unsigned long start_to_eshoff_sz = (unsigned long) &(elf_info->elf_header->e_shoff) - (unsigned long) start;
-	memcpy(*stub_buffer, start,  start_to_eshoff_sz);
+	ft_memcpy(*stub_buffer, start,  start_to_eshoff_sz);
 	*stub_buffer += start_to_eshoff_sz;
-	memcpy(*stub_buffer, &new_shoff, sizeof(new_shoff));
+	ft_memcpy(*stub_buffer, &new_shoff, sizeof(new_shoff));
 	*stub_buffer += sizeof(new_shoff);
 	start = (void *)&(elf_info->elf_header->e_shoff) + sizeof(new_shoff);
 
@@ -174,9 +174,9 @@ void *update_segment_offsets(t_elf_info *elf_info, void *start, unsigned char **
 		else if (elf_info->segments[i].p_offset >= (unsigned long)elf_info->pt_load->p_offset + elf_info->pt_load->p_filesz)
 		{
 			Elf64_Off new_p_off = elf_info->segments[i].p_offset + PAGE_SIZE;
-			memcpy(*stub_buffer, start, (unsigned long)&elf_info->segments[i].p_offset - (unsigned long)start);
+			ft_memcpy(*stub_buffer, start, (unsigned long)&elf_info->segments[i].p_offset - (unsigned long)start);
 			*stub_buffer += (unsigned long)&elf_info->segments[i].p_offset - (unsigned long)start;
-			memcpy(*stub_buffer, &new_p_off, sizeof(new_p_off));
+			ft_memcpy(*stub_buffer, &new_p_off, sizeof(new_p_off));
 			*stub_buffer += sizeof(new_p_off);
 			start = (void *)&elf_info->segments[i].p_offset + sizeof(elf_info->segments[i].p_offset);
 		}
@@ -200,10 +200,10 @@ int write_enc_text_section(t_elf_info *elf_info, void *start, unsigned char **st
 	// }
 	// printf("\n");
 	
-	memcpy(*stub_buffer, start, start_to_txt_scn_sz);
+	ft_memcpy(*stub_buffer, start, start_to_txt_scn_sz);
 	*stub_buffer += start_to_txt_scn_sz;
 	
-	memcpy(*stub_buffer, encrypted_text, txt_sect_size);	
+	ft_memcpy(*stub_buffer, encrypted_text, txt_sect_size);	
 	*stub_buffer += txt_sect_size;
 
 	free(encrypted_text);
@@ -243,7 +243,7 @@ int write_binary(unsigned char **stub_buffer, t_key *key, t_file_info *guest_fil
 	// copy everything else thats left for the first segment
 	// which should be the segment which includes the original text section
 	uint64_t start_to_end_seg_sz = (unsigned long)(elf_info->guest_file.contents + elf_info->pt_load->p_offset) - (unsigned long)start + (unsigned long)elf_info->pt_load->p_memsz;
-	memcpy(*stub_buffer, start, start_to_end_seg_sz);
+	ft_memcpy(*stub_buffer, start, start_to_end_seg_sz);
 	start += start_to_end_seg_sz;
 	*stub_buffer += start_to_end_seg_sz;
 	debug("segment remaininig bytes %x", start_to_end_seg_sz);
@@ -261,7 +261,7 @@ int write_binary(unsigned char **stub_buffer, t_key *key, t_file_info *guest_fil
 	start = update_section_offsets(elf_info, start, stub_buffer);
 
 	// write the rest of the elf
-	memcpy(*stub_buffer, start, end - start);
+	ft_memcpy(*stub_buffer, start, end - start);
 
 	return 0;
 }

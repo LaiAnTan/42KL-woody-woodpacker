@@ -20,4 +20,5 @@ target_link_libraries(ft_elf
 	io
 	enc
 	shellcode
+	libft
 )

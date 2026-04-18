@@ -1,8 +1,8 @@
-#include <string.h>
 #include <stdlib.h>
 
 #include "ft_elf.h"
 #include "logging.h"
+#include "libft.h"
 
 int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info *elf_info)
 {
@@ -22,14 +22,14 @@ int get_text_section_header(Elf64_Shdr **text_section_ptr, t_elf_info *elf_info)
 			
 			unsigned char *sect_name = elf_info->guest_file.contents + sh_offset + sh_idx;
 			// once section name string table is located, find text section
-			if (!strcmp((const char *) sect_name, ".shstrtab"))
+			if (!ft_strcmp((const char *) sect_name, ".shstrtab"))
 			{
 				for (int j = 0; j < num_sections; j++)	
 				{
 					Elf64_Shdr *query_section = &sections[j];
 					Elf32_Word query_sh_idx = query_section->sh_name;
 					unsigned char *query_sect_name = elf_info->guest_file.contents + sh_offset + query_sh_idx;
-					if (!strcmp((const char *) query_sect_name, ".text"))
+					if (!ft_strcmp((const char *) query_sect_name, ".text"))
 					{
 						*text_section_ptr = query_section;
 						return 0;
