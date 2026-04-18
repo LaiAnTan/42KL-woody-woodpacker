@@ -46,8 +46,11 @@ int write_file(unsigned char *stub_buffer, long size_stub)
 {
 	int fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	int ret = write(fd, stub_buffer, size_stub);
-	if (ret)
+	if (ret < 1)
+	{
+		error("write_file: write error");
 		return ret;
+	}
 	
 	ret = close(fd);
 	return ret;

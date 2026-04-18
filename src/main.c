@@ -45,8 +45,7 @@ int create_stub(t_key *key, t_file_info *guest_file, t_elf_info *elf_info)
 	ret = write_file(stub_buffer_snapshot, size_stub);
 	if (ret)
 		return ret;
-
-	free(stub_buffer);
+	
 	free(stub_buffer_snapshot);
 	return 0;
 }
@@ -101,6 +100,7 @@ int main(int argc, char const *argv[])
 		return ret;
 	}
 	
+	info("woody file created!");
 	free_file(&guest_file);
 	free_key(key);
 	return 0;
